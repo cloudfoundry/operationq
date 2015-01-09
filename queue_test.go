@@ -14,7 +14,7 @@ var _ = Describe("Queue", func() {
 	var queue operationq.Queue
 
 	BeforeEach(func() {
-		queue = operationq.NewQueue()
+		queue = operationq.NewSlidingQueue(2)
 	})
 
 	Describe("Push", func() {
@@ -72,31 +72,69 @@ var _ = Describe("Queue", func() {
 		})
 
 		Context("when operations have the same key", func() {
-			var k1op1 *fake_operationq.FakeOperation
-			var k1op2 *fake_operationq.FakeOperation
-			var out chan string
+			Context("when the number of operations does not exceed the capacity of the queue", func() {
+				var k1op1 *fake_operationq.FakeOperation
+				var k1op2 *fake_operationq.FakeOperation
+				var out chan string
 
-			BeforeEach(func() {
-				k1op1 = operationWithKey("k1")
-				k1op2 = operationWithKey("k1")
-				out = make(chan string, 2)
+				BeforeEach(func() {
+					k1op1 = operationWithKey("k1")
+					k1op2 = operationWithKey("k1")
+					out = make(chan string, 2)
 
-				k1op1.ExecuteStub = func() {
-					time.Sleep(time.Millisecond)
-					out <- "op1"
-				}
+					k1op1.ExecuteStub = func() {
+						time.Sleep(time.Millisecond)
+						out <- "op1"
+					}
 
-				k1op2.ExecuteStub = func() {
-					out <- "op2"
-				}
+					k1op2.ExecuteStub = func() {
+						out <- "op2"
+					}
 
-				operations = []*fake_operationq.FakeOperation{k1op1, k1op2}
+					operations = []*fake_operationq.FakeOperation{k1op1, k1op2}
+				})
+
+				It("runs them in order", func(done Done) {
+					Ω(<-out).Should(Equal("op1"))
+					Ω(<-out).Should(Equal("op2"))
+					close(done)
+				})
 			})
 
-			It("runs them in order", func(done Done) {
-				Ω(<-out).Should(Equal("op1"))
-				Ω(<-out).Should(Equal("op2"))
-				close(done)
+			Context("when the number of operations exceeds the capacity of the queue", func() {
+				var k1op1 *fake_operationq.FakeOperation
+				var k1op2 *fake_operationq.FakeOperation
+				var k1op3 *fake_operationq.FakeOperation
+				var out chan string
+
+				BeforeEach(func() {
+					k1op1 = operationWithKey("k1")
+					k1op2 = operationWithKey("k1")
+					k1op3 = operationWithKey("k1")
+					out = make(chan string, 3)
+
+					k1op1.ExecuteStub = func() {
+						time.Sleep(time.Millisecond)
+						out <- "op1"
+					}
+
+					k1op2.ExecuteStub = func() {
+						time.Sleep(time.Millisecond)
+						out <- "op2"
+					}
+
+					k1op2.ExecuteStub = func() {
+						out <- "op3"
+					}
+
+					operations = []*fake_operationq.FakeOperation{k1op1, k1op2, k1op3}
+				})
+
+				It("drops the oldest queued operation", func(done Done) {
+					Ω(<-out).Should(Equal("op1"))
+					Ω(<-out).Should(Equal("op3"))
+					close(done)
+				})
 			})
 		})
 	})

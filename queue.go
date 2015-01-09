@@ -1,6 +1,8 @@
 // a parallel operation queue.
 package operationq
 
+import "container/list"
+
 //go:generate counterfeiter -o fake_operationq/fake_operation.go . Operation
 
 // The Operation interface is implemented externally, by the user of the queue.
@@ -20,25 +22,66 @@ type Operation interface {
 type Queue interface {
 	// Enqueue an operation for execution.
 	Push(Operation)
+}
 
-	// Prevent further operations from being added to the queue.
-	// Close()
-	//
-	// // Wait for in-flight operations to complete. Call after Close.
-	// Wait()
+type buffer interface {
+	Push(Operation) bool
+	Pop() (Operation, bool)
+	Len() int
+}
+
+type slidingBuffer struct {
+	buffer   *list.List
+	capacity int
+}
+
+func newSlidingBuffer(capacity int) buffer {
+	return &slidingBuffer{
+		buffer:   list.New(),
+		capacity: capacity,
+	}
+}
+
+func (b *slidingBuffer) Push(op Operation) bool {
+	if b.capacity == 0 {
+		return false
+	}
+
+	b.buffer.PushBack(op)
+	if b.buffer.Len() > b.capacity {
+		b.buffer.Remove(b.buffer.Front())
+	}
+	return true
+}
+
+func (b *slidingBuffer) Pop() (Operation, bool) {
+	elem := b.buffer.Front()
+	if elem == nil {
+		return nil, false
+	}
+
+	return elem.Value.(Operation), true
+}
+
+func (b *slidingBuffer) Len() int {
+	return b.buffer.Len()
 }
 
 type multiQueue struct {
-	queues       map[string][]Operation
+	queues       map[string]buffer
 	pushChan     chan Operation
 	completeChan chan string
+	capacity     int
 }
 
-func NewQueue() Queue {
+// NewSlidingQueue returns a queue that will buffer up to `capacity` operations
+// per key. When capacity is exceeded, older operations are dequeued to make room.
+func NewSlidingQueue(capacity int) Queue {
 	q := &multiQueue{
-		queues:       make(map[string][]Operation),
+		queues:       make(map[string]buffer),
 		pushChan:     make(chan Operation),
 		completeChan: make(chan string),
+		capacity:     capacity,
 	}
 	go q.run()
 	return q
@@ -49,21 +92,21 @@ func (q *multiQueue) run() {
 		select {
 		case queueKey := <-q.completeChan:
 			queue := q.queues[queueKey]
-			if len(queue) == 0 {
+			if queue.Len() == 0 {
 				delete(q.queues, queueKey)
 			} else {
-				o := queue[0]
-				q.queues[queueKey] = queue[1:]
-				go q.execute(o)
+				op, ok := queue.Pop()
+				if ok {
+					go q.execute(op)
+				}
 			}
 
-		case o := <-q.pushChan:
-			if queue, ok := q.queues[o.Key()]; ok {
-				queue = append(queue, o)
-				q.queues[o.Key()] = queue
+		case op := <-q.pushChan:
+			if queue, ok := q.queues[op.Key()]; ok {
+				queue.Push(op)
 			} else {
-				q.queues[o.Key()] = []Operation{}
-				go q.execute(o)
+				q.queues[op.Key()] = newSlidingBuffer(q.capacity)
+				go q.execute(op)
 			}
 		}
 	}
