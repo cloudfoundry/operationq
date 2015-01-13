@@ -60,6 +60,7 @@ func (b *slidingBuffer) Pop() (Operation, bool) {
 		return nil, false
 	}
 
+	b.buffer.Remove(elem)
 	return elem.Value.(Operation), true
 }
 

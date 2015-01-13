@@ -75,11 +75,13 @@ var _ = Describe("Queue", func() {
 			Context("when the number of operations does not exceed the capacity of the queue", func() {
 				var k1op1 *fake_operationq.FakeOperation
 				var k1op2 *fake_operationq.FakeOperation
+				var k1op3 *fake_operationq.FakeOperation
 				var out chan string
 
 				BeforeEach(func() {
 					k1op1 = operationWithKey("k1")
 					k1op2 = operationWithKey("k1")
+					k1op3 = operationWithKey("k1")
 					out = make(chan string, 2)
 
 					k1op1.ExecuteStub = func() {
@@ -91,12 +93,19 @@ var _ = Describe("Queue", func() {
 						out <- "op2"
 					}
 
+					k1op3.ExecuteStub = func() {
+						out <- "op3"
+					}
+
 					operations = []*fake_operationq.FakeOperation{k1op1, k1op2}
 				})
 
 				It("runs them in order", func(done Done) {
 					Ω(<-out).Should(Equal("op1"))
 					Ω(<-out).Should(Equal("op2"))
+
+					queue.Push(k1op3)
+					Ω(<-out).Should(Equal("op3"))
 					close(done)
 				})
 			})
