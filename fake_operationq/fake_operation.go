@@ -11,7 +11,7 @@ type FakeOperation struct {
 	KeyStub        func() string
 	keyMutex       sync.RWMutex
 	keyArgsForCall []struct{}
-	keyReturns struct {
+	keyReturns     struct {
 		result1 string
 	}
 	ExecuteStub        func()

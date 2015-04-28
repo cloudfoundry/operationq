@@ -57,7 +57,7 @@ var _ = Describe("Queue", func() {
 				wait.Add(1)
 				k2.ExecuteStub = func() {
 					defer GinkgoRecover()
-					Ω(k1.ExecuteCallCount()).Should(Equal(1))
+					Expect(k1.ExecuteCallCount()).To(Equal(1))
 					wait.Done()
 					wait.Wait()
 				}
@@ -101,11 +101,11 @@ var _ = Describe("Queue", func() {
 				})
 
 				It("runs them in order", func(done Done) {
-					Ω(<-out).Should(Equal("op1"))
-					Ω(<-out).Should(Equal("op2"))
+					Expect(<-out).To(Equal("op1"))
+					Expect(<-out).To(Equal("op2"))
 
 					queue.Push(k1op3)
-					Ω(<-out).Should(Equal("op3"))
+					Expect(<-out).To(Equal("op3"))
 					close(done)
 				})
 			})
@@ -140,8 +140,8 @@ var _ = Describe("Queue", func() {
 				})
 
 				It("drops the oldest queued operation", func(done Done) {
-					Ω(<-out).Should(Equal("op1"))
-					Ω(<-out).Should(Equal("op3"))
+					Expect(<-out).To(Equal("op1"))
+					Expect(<-out).To(Equal("op3"))
 					close(done)
 				})
 			})

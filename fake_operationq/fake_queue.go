@@ -16,9 +16,9 @@ type FakeQueue struct {
 	CloseStub        func()
 	closeMutex       sync.RWMutex
 	closeArgsForCall []struct{}
-	WaitStub        func()
-	waitMutex       sync.RWMutex
-	waitArgsForCall []struct{}
+	WaitStub         func()
+	waitMutex        sync.RWMutex
+	waitArgsForCall  []struct{}
 }
 
 func (fake *FakeQueue) Push(arg1 operationq.Operation) {
