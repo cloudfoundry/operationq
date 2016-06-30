@@ -4,10 +4,10 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/operationq"
+	"code.cloudfoundry.org/operationq/fake_operationq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-golang/operationq"
-	"github.com/pivotal-golang/operationq/fake_operationq"
 )
 
 var _ = Describe("Queue", func() {

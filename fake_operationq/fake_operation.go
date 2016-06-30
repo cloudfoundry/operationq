@@ -4,7 +4,7 @@ package fake_operationq
 import (
 	"sync"
 
-	"github.com/pivotal-golang/operationq"
+	"code.cloudfoundry.org/operationq"
 )
 
 type FakeOperation struct {
