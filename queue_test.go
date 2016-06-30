@@ -57,7 +57,7 @@ var _ = Describe("Queue", func() {
 				wait.Add(1)
 				k2.ExecuteStub = func() {
 					defer GinkgoRecover()
-					Expect(k1.ExecuteCallCount()).To(Equal(1))
+					Eventually(k1.ExecuteCallCount).Should(Equal(1))
 					wait.Done()
 					wait.Wait()
 				}
