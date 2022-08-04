@@ -20,12 +20,12 @@ var _ = Describe("Queue", func() {
 	Describe("Push", func() {
 		var operations []*fake_operationq.FakeOperation
 
-		JustBeforeEach(func(done Done) {
-			for _, o := range operations {
-				queue.Push(o)
-			}
-
-			close(done)
+		JustBeforeEach(func() {
+			go func() {
+				for _, o := range operations {
+					queue.Push(o)
+				}
+			}()
 		})
 
 		Context("when there are no current operations", func() {
@@ -65,9 +65,14 @@ var _ = Describe("Queue", func() {
 				operations = []*fake_operationq.FakeOperation{k1, k2}
 			})
 
-			It("runs them in parallel", func(done Done) {
-				wait.Wait()
-				close(done)
+			It("runs them in parallel", func() {
+				done := make(chan interface{})
+				timeout := 5
+				go func() {
+					wait.Wait()
+					close(done)
+				}()
+				Eventually(done, timeout).Should(BeClosed())
 			})
 		})
 
@@ -100,13 +105,18 @@ var _ = Describe("Queue", func() {
 					operations = []*fake_operationq.FakeOperation{k1op1, k1op2}
 				})
 
-				It("runs them in order", func(done Done) {
-					Expect(<-out).To(Equal("op1"))
-					Expect(<-out).To(Equal("op2"))
+				It("runs them in order", func() {
+					done := make(chan interface{})
+					timeout := 5
+					go func() {
+						Expect(<-out).To(Equal("op1"))
+						Expect(<-out).To(Equal("op2"))
 
-					queue.Push(k1op3)
-					Expect(<-out).To(Equal("op3"))
-					close(done)
+						queue.Push(k1op3)
+						Expect(<-out).To(Equal("op3"))
+						close(done)
+					}()
+					Eventually(done, timeout).Should(BeClosed())
 				})
 			})
 
@@ -139,10 +149,15 @@ var _ = Describe("Queue", func() {
 					operations = []*fake_operationq.FakeOperation{k1op1, k1op2, k1op3}
 				})
 
-				It("drops the oldest queued operation", func(done Done) {
-					Expect(<-out).To(Equal("op1"))
-					Expect(<-out).To(Equal("op3"))
-					close(done)
+				It("drops the oldest queued operation", func() {
+					done := make(chan interface{})
+					timeout := 5
+					go func() {
+						Expect(<-out).To(Equal("op1"))
+						Expect(<-out).To(Equal("op3"))
+						close(done)
+					}()
+					Eventually(done, timeout).Should(BeClosed())
 				})
 			})
 		})
