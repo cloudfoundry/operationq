@@ -1,7 +1,9 @@
 // a parallel operation queue.
 package operationq
 
-import "container/list"
+import (
+	"container/list"
+)
 
 //go:generate counterfeiter -o fake_operationq/fake_operation.go . Operation
 
