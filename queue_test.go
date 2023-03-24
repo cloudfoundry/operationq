@@ -114,12 +114,14 @@ var _ = Describe("Queue", func() {
 				var k1op1 *fake_operationq.FakeOperation
 				var k1op2 *fake_operationq.FakeOperation
 				var k1op3 *fake_operationq.FakeOperation
+				var k1op4 *fake_operationq.FakeOperation
 				var out chan string
 
 				BeforeEach(func() {
 					k1op1 = operationWithKey("k1")
 					k1op2 = operationWithKey("k1")
 					k1op3 = operationWithKey("k1")
+					k1op4 = operationWithKey("k1")
 					out = make(chan string, 3)
 
 					k1op1.ExecuteStub = func() {
@@ -132,16 +134,21 @@ var _ = Describe("Queue", func() {
 						out <- "op2"
 					}
 
-					k1op2.ExecuteStub = func() {
+					k1op3.ExecuteStub = func() {
 						out <- "op3"
 					}
 
-					operations = []*fake_operationq.FakeOperation{k1op1, k1op2, k1op3}
+					k1op4.ExecuteStub = func() {
+						out <- "op4"
+					}
+
+					operations = []*fake_operationq.FakeOperation{k1op1, k1op2, k1op3, k1op4}
 				})
 
 				It("drops the oldest queued operation", func(done Done) {
 					Expect(<-out).To(Equal("op1"))
 					Expect(<-out).To(Equal("op3"))
+					Expect(<-out).To(Equal("op4"))
 					close(done)
 				})
 			})
