@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/operationq"
 	"code.cloudfoundry.org/operationq/fake_operationq"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -21,11 +21,9 @@ var _ = Describe("Queue", func() {
 		var operations []*fake_operationq.FakeOperation
 
 		JustBeforeEach(func() {
-			go func() {
-				for _, o := range operations {
-					queue.Push(o)
-				}
-			}()
+			for _, o := range operations {
+				queue.Push(o)
+			}
 		})
 
 		Context("when there are no current operations", func() {
